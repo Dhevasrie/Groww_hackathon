@@ -1,10 +1,6 @@
 package com.groww.hackathon;
 
-import com.groww.hackathon.dto.ItemRequest;
 import com.groww.hackathon.exception.ResourceNotFoundException;
-import com.groww.hackathon.model.Item;
-import com.groww.hackathon.repository.ItemRepository;
-import com.groww.hackathon.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
