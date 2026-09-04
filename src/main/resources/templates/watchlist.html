@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Market Watchlist</title>
+    <link rel="stylesheet" th:href="@{/css/watchlist.css}">
+</head>
+<body>
+
+<header>
+    <h1>Smart Market Watchlist</h1>
+    <p class="subtitle">Not just prices — what actually changed since you last looked.</p>
+</header>
+
+<form id="add-form" th:action="@{/watchlist/add}" method="post" class="add-form">
+    <input type="text" name="symbol" placeholder="e.g. RELIANCE" required
+           pattern="[A-Za-z]+" title="Letters only" maxlength="20">
+    <button type="submit">Add to watchlist</button>
+</form>
+
+<div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(items)}">
+    <p>Your watchlist is empty. Add a symbol above to get started.</p>
+    <p class="hint">Try: RELIANCE, TCS, INFY, ZOMATO, PAYTM, HDFCBANK</p>
+</div>
+
+<table id="watchlist-table" class="watchlist-table" th:unless="${#lists.isEmpty(items)}">
+    <thead>
+    <tr>
+        <th>Symbol</th>
+        <th>Price</th>
+        <th>Change since last seen</th>
+        <th>Status</th>
+        <th>Data</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="item : ${items}"
+        th:attr="data-symbol=${item.symbol}"
+        th:class="'row-' + ${item.severity}">
+        <td class="symbol-cell" th:text="${item.symbol}">RELIANCE</td>
+        <td class="price-cell" th:text="${#numbers.formatDecimal(item.currentPrice, 1, 2)}">1234.56</td>
+        <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
+        <td>
+            <span class="badge" th:classappend="'badge-' + ${item.severity}" th:text="${item.severity}">NEW</span>
+        </td>
+        <td>
+            <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
+        </td>
+        <td>
+            <form th:action="@{/watchlist/remove}" method="post" class="remove-form">
+                <input type="hidden" name="symbol" th:value="${item.symbol}">
+                <button type="submit" class="remove-btn" title="Remove">&times;</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<footer>
+    <p class="note">Auto-refreshes every 5s. Prices are simulated for demo purposes.</p>
+</footer>
+
+<script th:src="@{/js/watchlist.js}"></script>
+</body>
+</html>

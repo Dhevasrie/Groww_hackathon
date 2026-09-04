@@ -1,0 +1,178 @@
+:root {
+    --bg: #0f1117;
+    --card: #171a23;
+    --border: #262a36;
+    --text: #e6e8ee;
+    --text-dim: #8b8fa3;
+    --new: #4a90d9;
+    --quiet: #6b7280;
+    --notable: #d9a441;
+    --significant: #d94a4a;
+    --fresh: #3fb950;
+    --stale: #d9a441;
+    --conflicted: #d94a4a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 20px;
+}
+
+header h1 {
+    margin-bottom: 4px;
+    font-size: 1.6rem;
+}
+
+.subtitle {
+    color: var(--text-dim);
+    margin-top: 0;
+    margin-bottom: 24px;
+}
+
+.add-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.add-form input {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.add-form button {
+    padding: 10px 18px;
+    background: var(--new);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.add-form button:hover {
+    opacity: 0.9;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+}
+
+.empty-state .hint {
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+
+.watchlist-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.watchlist-table th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+}
+
+.watchlist-table td {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+}
+
+.watchlist-table tr:last-child td {
+    border-bottom: none;
+}
+
+.symbol-cell {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.price-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+.message-cell {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.badge-NEW { background: rgba(74,144,217,0.18); color: var(--new); }
+.badge-QUIET { background: rgba(107,114,128,0.18); color: var(--quiet); }
+.badge-NOTABLE { background: rgba(217,164,65,0.18); color: var(--notable); }
+.badge-SIGNIFICANT { background: rgba(217,74,74,0.18); color: var(--significant); }
+
+.freshness {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.freshness-FRESH { color: var(--fresh); }
+.freshness-STALE { color: var(--stale); }
+.freshness-CONFLICTED { color: var(--conflicted); }
+
+.remove-form { margin: 0; }
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+}
+
+.remove-btn:hover {
+    color: var(--significant);
+}
+
+footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.note {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+/* Flash effect when a row updates via polling */
+@keyframes flash-update {
+    0% { background: rgba(74,144,217,0.25); }
+    100% { background: transparent; }
+}
+
+.row-flash {
+    animation: flash-update 0.9s ease-out;
+}
