@@ -1,37 +1,72 @@
-.back-link {
-    color: var(--text-dim);
-    text-decoration: none;
-    font-size: 0.85rem;
-    display: inline-block;
-    margin-top: 12px;
+/* ============================================================
+   SYMBOL DETAIL — Extends watchlist.css
+   ============================================================ */
+
+.detail-header {
+  margin: var(--space-md) 0 var(--space-xl);
 }
 
-.back-link:hover {
-    color: var(--new);
+.detail-header h1 {
+  font-size: 2.2rem;
 }
 
+.detail-header .subtitle {
+  font-size: 0.9rem;
+}
+
+/* ---------- Chart ---------- */
 .chart-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  opacity: 0.3;
 }
 
 #price-chart {
-    width: 100%;
-    height: 220px;
-    display: block;
+  width: 100%;
+  height: 220px;
+  display: block;
 }
 
-.symbol-link {
-    color: var(--text);
-    text-decoration: none;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+/* ---------- History Table ---------- */
+#history-table .row-SIGNIFICANT td:first-child {
+  border-left: 2px solid var(--sev-significant);
 }
 
-.symbol-link:hover {
-    color: var(--new);
-    text-decoration: underline;
+#history-table .row-NOTABLE td:first-child {
+  border-left: 2px solid var(--sev-notable);
+}
+
+#history-table .row-NEW td:first-child {
+  border-left: 2px solid var(--sev-new);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .detail-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .chart-card {
+    padding: var(--space-md);
+  }
+
+  #price-chart {
+    height: 150px;
+  }
 }

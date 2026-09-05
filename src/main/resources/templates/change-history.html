@@ -2,49 +2,60 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>While You Were Away — Smart Market Watchlist</title>
     <link rel="stylesheet" th:href="@{/css/watchlist.css}">
 </head>
 <body>
 
-<header>
-    <h1>While You Were Away</h1>
-    <p class="subtitle">Every significant move ever detected on your watchlist — even the ones a glance might have missed.</p>
-</header>
+<div class="app-container">
 
-<p><a th:href="@{/watchlist}">&larr; Back to watchlist</a></p>
+    <header class="app-header">
+        <div class="header-left">
+            <h1>While You <span class="accent">Were Away</span></h1>
+            <p class="subtitle">Every significant move ever detected on your watchlist.</p>
+        </div>
+        <nav class="header-actions">
+            <a th:href="@{/watchlist}" class="back-link" style="padding:0; border:none; font-size:0.78rem;">← Back to watchlist</a>
+        </nav>
+    </header>
 
-<div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(events)}">
-    <p>No significant moves logged yet.</p>
-    <p class="hint">This fills in the moment your watchlist detects an unusual move — nothing to see until then.</p>
+    <div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(events)}">
+        <div class="icon">◈</div>
+        <h3>No significant moves logged yet</h3>
+        <p class="hint">This fills in the moment your watchlist detects an unusual move.</p>
+    </div>
+
+    <div class="table-wrapper" th:unless="${#lists.isEmpty(events)}">
+        <table id="history-table" class="watchlist-table">
+            <thead>
+            <tr>
+                <th>When</th>
+                <th>Symbol</th>
+                <th>Change</th>
+                <th>Z-score</th>
+                <th>Detail</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="event : ${events}">
+                <td class="message-cell" th:text="${#temporals.format(event.occurredAt, 'dd MMM, HH:mm:ss')}">04 Sep, 14:32:10</td>
+                <td class="symbol-cell" th:text="${event.symbol}">TCS</td>
+                <td class="price-cell"
+                    th:text="${event.percentChange != null ? #numbers.formatDecimal(event.percentChange * 100, 1, 2) + '%' : '—'}">-4.20%</td>
+                <td class="price-cell"
+                    th:text="${event.zScore != null ? #numbers.formatDecimal(event.zScore, 1, 1) + 'x' : '—'}">3.0x</td>
+                <td class="message-cell" th:text="${event.message}">Unusual move for TCS</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="app-footer">
+        <p class="note">Logged once per event — repeated significant readings within 30s are deduplicated.</p>
+    </footer>
+
 </div>
-
-<table id="history-table" class="watchlist-table" th:unless="${#lists.isEmpty(events)}">
-    <thead>
-    <tr>
-        <th>When</th>
-        <th>Symbol</th>
-        <th>Change</th>
-        <th>Z-score</th>
-        <th>Detail</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="event : ${events}">
-        <td class="message-cell" th:text="${#temporals.format(event.occurredAt, 'dd MMM, HH:mm:ss')}">04 Sep, 14:32:10</td>
-        <td class="symbol-cell" th:text="${event.symbol}">TCS</td>
-        <td class="price-cell"
-            th:text="${event.percentChange != null ? #numbers.formatDecimal(event.percentChange * 100, 1, 2) + '%' : '—'}">-4.20%</td>
-        <td class="price-cell"
-            th:text="${event.zScore != null ? #numbers.formatDecimal(event.zScore, 1, 1) + 'x' : '—'}">3.0x</td>
-        <td class="message-cell" th:text="${event.message}">Unusual move for TCS</td>
-    </tr>
-    </tbody>
-</table>
-
-<footer>
-    <p class="note">Logged once per event — repeated significant readings within 30s of each other are deduplicated.</p>
-</footer>
 
 </body>
 </html>

@@ -2,103 +2,145 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Market Watchlist</title>
     <link rel="stylesheet" th:href="@{/css/watchlist.css}">
 </head>
 <body>
 
-<header>
-    <h1>Smart Market Watchlist</h1>
-    <p class="subtitle">Not just prices — what actually changed since you last looked.</p>
-</header>
+<div class="app-container">
 
-<p><a th:href="@{/watchlist/history}">View change history &rarr;</a></p>
-<p><a th:href="@{/watchlist/settings/sensitivity}">Alert sensitivity settings &rarr;</a></p>
-<p><a th:href="@{/watchlist/insights}">Today's insights &rarr;</a></p>
+    <!-- ===== HEADER ===== -->
+    <header class="app-header">
+        <div class="header-left">
+            <h1>Smart <span class="accent">Market</span> Watchlist</h1>
+            <p class="subtitle">Not just prices — what actually changed since you last looked.</p>
+        </div>
+        <nav class="header-actions">
+            <a th:href="@{/watchlist/history}">History</a>
+            <a th:href="@{/watchlist/settings/sensitivity}">Sensitivity</a>
+            <a th:href="@{/watchlist/insights}">Insights</a>
+        </nav>
+    </header>
 
+    <!-- ===== DIGEST ===== -->
+    <div id="digest-banner" class="digest-banner" th:if="${digest != null}" th:text="${digest}">
+        3 of 6 holdings moved together — looks market-wide. <strong>TCS</strong> is the outlier, up 4.2%, 3.0x its normal swing.
+    </div>
 
-<div id="digest-banner" class="digest-banner" th:if="${digest != null}" th:text="${digest}">
-    3 of 6 holdings moved together — looks market-wide. TCS is the outlier, up 4.2%, 3.0x its normal swing.
+    <!-- ===== STATUS ===== -->
+    <div id="status-strip" class="status-strip">
+        <span class="dot"></span>
+        <span class="status-label">Polling</span>
+        <span class="status-value" id="status-symbol-count" th:text="${trackedSymbolCount}">6</span>
+        <span class="status-label">symbols globally</span>
+        <span class="status-label">·</span>
+        <span class="status-label">last poll</span>
+        <span class="status-value" id="status-last-poll" th:text="${lastPollSecondsAgo}">0</span>
+        <span class="status-label">s ago</span>
+    </div>
+
+    <!-- ===== ADD FORM ===== -->
+    <form id="add-form" th:action="@{/watchlist/add}" method="post" class="add-form">
+        <input type="text" id="symbol-input" name="symbol" placeholder="e.g. RELIANCE" required
+               pattern="[A-Za-z]+" title="Letters only" maxlength="20" autocomplete="off">
+        <button type="submit">Add to watchlist</button>
+    </form>
+
+    <!-- ===== EMPTY STATE ===== -->
+    <div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(items)}">
+        <div class="icon">◈</div>
+        <h3>Your watchlist is empty</h3>
+        <p class="hint">Add a symbol above to get started. Try: <code>RELIANCE</code> <code>TCS</code> <code>INFY</code> <code>ZOMATO</code></p>
+    </div>
+
+    <!-- ===== TABLE ===== -->
+    <div class="table-wrapper" th:unless="${#lists.isEmpty(items)}">
+        <table id="watchlist-table" class="watchlist-table">
+            <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Price</th>
+                <th>Change since last seen</th>
+                <th>Status</th>
+                <th>Data</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <th:block th:each="item : ${items}">
+                <!-- Main row -->
+                <tr th:attr="data-symbol=${item.symbol}"
+                    th:class="'row-' + ${item.severity}">
+                    <td class="symbol-cell">
+                        <button type="button" class="expand-toggle" th:attr="data-symbol=${item.symbol}">
+                            <span class="caret">▸</span>
+                        </button>
+                        <a th:href="@{'/watchlist/' + ${item.symbol}}" class="symbol-link" th:text="${item.symbol}">RELIANCE</a>
+                    </td>
+                    <td class="price-cell" th:text="${#numbers.formatDecimal(item.currentPrice, 1, 2)}">1234.56</td>
+                    <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
+                    <td>
+                        <div class="status-badges">
+                            <span class="badge" th:classappend="'badge-' + ${item.severity}" th:text="${item.severity}">NEW</span>
+                            <span th:if="${item.context.name() == 'MARKET_WIDE'}" class="badge badge-context-muted">Market-wide</span>
+                            <span th:if="${item.context.name() == 'ISOLATED'}" class="badge badge-context-outlier">Outlier</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
+                        <span class="freshness-age"></span>
+                    </td>
+                    <td class="actions-cell">
+                        <button type="button" class="dismiss-btn"
+                                th:if="${item.severity.name() == 'NOTABLE' or item.severity.name() == 'SIGNIFICANT'}"
+                                th:attr="data-symbol=${item.symbol}"
+                                title="Not useful — raises the bar for this symbol">Not useful</button>
+                        <form th:action="@{/watchlist/remove}" method="post" class="remove-form" style="margin:0;">
+                            <input type="hidden" name="symbol" th:value="${item.symbol}">
+                            <button type="submit" class="remove-btn" title="Remove">✕</button>
+                        </form>
+                    </td>
+                </tr>
+                <!-- Explain row -->
+                <tr class="explain-row" th:attr="data-symbol-for=${item.symbol}" style="display:none;">
+                    <td colspan="6">
+                        <div class="explain-panel">
+                                <span>
+                                    <span class="label">z-score</span>
+                                    <span class="value" th:text="${item.zScore != null ? #numbers.formatDecimal(item.zScore, 1, 2) : '—'}">—</span>
+                                </span>
+                            <span class="divider">|</span>
+                            <span>
+                                    <span class="label">sensitivity</span>
+                                    <span class="value" th:text="${#numbers.formatDecimal(item.thresholdMultiplier, 1, 2)} + 'x'">1.00x</span>
+                                </span>
+                            <span class="divider">|</span>
+                            <span>
+                                    <span class="label">freshness</span>
+                                    <span class="value" th:text="${item.freshness}">FRESH</span>
+                                    <span class="label" th:text="'(' + ${item.lastUpdated} != null ? ${#temporals.format(item.lastUpdated, 'HH:mm:ss')} : '—' + ')'">(14:32:10)</span>
+                                </span>
+                        </div>
+                    </td>
+                </tr>
+            </th:block>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="app-footer">
+        <p class="note">Auto-refreshes every 5s · Prices are simulated for demo purposes</p>
+    </footer>
+
 </div>
 
-<div id="status-strip" class="status-strip">
-    Polling <span id="status-symbol-count" th:text="${trackedSymbolCount}">6</span> symbols globally ·
-    last poll <span id="status-last-poll" th:text="${lastPollSecondsAgo}">0</span>s ago
-</div>
-
-<form id="add-form" th:action="@{/watchlist/add}" method="post" class="add-form">
-    <input type="text" id="symbol-input" name="symbol" placeholder="e.g. RELIANCE" required
-           pattern="[A-Za-z]+" title="Letters only" maxlength="20" autocomplete="off">
-    <button type="submit">Add to watchlist</button>
-</form>
-
-<div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(items)}">
-    <p>Your watchlist is empty. Add a symbol above to get started.</p>
-    <p class="hint">Try: RELIANCE, TCS, INFY, ZOMATO, PAYTM, HDFCBANK, ICICIBANK, TATAMOTORS</p>
-</div>
-
-<table id="watchlist-table" class="watchlist-table" th:unless="${#lists.isEmpty(items)}">
-    <thead>
-    <tr>
-        <th>Symbol</th>
-        <th>Price</th>
-        <th>Change since last seen</th>
-        <th>Status</th>
-        <th>Data</th>
-        <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <th:block th:each="item : ${items}">
-        <tr th:attr="data-symbol=${item.symbol}"
-            th:class="'row-' + ${item.severity}">
-            <td class="symbol-cell">
-                <button type="button" class="expand-toggle" th:attr="data-symbol=${item.symbol}">▸</button>
-                <a th:href="@{'/watchlist/' + ${item.symbol}}" class="symbol-link" th:text="${item.symbol}">RELIANCE</a>
-            </td>
-            <td class="price-cell" th:text="${#numbers.formatDecimal(item.currentPrice, 1, 2)}">1234.56</td>
-            <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
-            <td>
-                <div class="status-badges">
-                    <span class="badge" th:classappend="'badge-' + ${item.severity}" th:text="${item.severity}">NEW</span>
-                    <span th:if="${item.context.name() == 'MARKET_WIDE'}" class="badge badge-context-muted">Market-wide</span>
-                    <span th:if="${item.context.name() == 'ISOLATED'}" class="badge badge-context-outlier">Outlier</span>
-                </div>
-            </td>
-            <td>
-                <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
-                <span class="freshness-age"></span>
-            </td>
-            <td>
-                <button type="button" class="dismiss-btn"
-                        th:if="${item.severity.name() == 'NOTABLE' or item.severity.name() == 'SIGNIFICANT'}"
-                        th:attr="data-symbol=${item.symbol}"
-                        title="Not useful — raises the bar for this symbol">Not useful</button>
-                <form th:action="@{/watchlist/remove}" method="post" class="remove-form">
-                    <input type="hidden" name="symbol" th:value="${item.symbol}">
-                    <button type="submit" class="remove-btn" title="Remove">&times;</button>
-                </form>
-            </td>
-        </tr>
-        <tr class="explain-row" th:attr="data-symbol-for=${item.symbol}" style="display:none;">
-            <td colspan="6">
-                <div class="explain-panel">
-                    <span>z-score: <strong class="explain-zscore" th:text="${item.zScore != null ? #numbers.formatDecimal(item.zScore, 1, 2) : '—'}">—</strong></span>
-                    <span>sensitivity: <strong class="explain-sensitivity" th:text="${#numbers.formatDecimal(item.thresholdMultiplier, 1, 2)} + 'x'">1.00x</strong></span>
-                </div>
-            </td>
-        </tr>
-    </th:block>
-    </tbody>
-</table>
-
-<footer>
-    <p class="note">Auto-refreshes every 5s. Prices are simulated for demo purposes.</p>
-</footer>
-
+<!-- ===== SCRIPTS ===== -->
 <script th:src="@{/js/watchlist.js}"></script>
 <script th:src="@{/js/symbol-autocomplete.js}"></script>
 <script th:src="@{/js/dismiss.js}"></script>
 <script th:src="@{/js/explain-toggle.js}"></script>
+
 </body>
 </html>

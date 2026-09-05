@@ -2,52 +2,63 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alert Sensitivity — Smart Market Watchlist</title>
     <link rel="stylesheet" th:href="@{/css/watchlist.css}">
 </head>
 <body>
 
-<header>
-    <h1>Alert Sensitivity</h1>
-    <p class="subtitle">Symbols where you've clicked "Not useful" — the bar for flagging them keeps rising with each dismissal.</p>
-</header>
+<div class="app-container">
 
-<p><a th:href="@{/watchlist}">&larr; Back to watchlist</a></p>
+    <header class="app-header">
+        <div class="header-left">
+            <h1>Alert <span class="accent">Sensitivity</span></h1>
+            <p class="subtitle">Symbols where you've clicked "Not useful" — the bar keeps rising with each dismissal.</p>
+        </div>
+        <nav class="header-actions">
+            <a th:href="@{/watchlist}" class="back-link" style="padding:0; border:none; font-size:0.78rem;">← Back to watchlist</a>
+        </nav>
+    </header>
 
-<div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(sensitivities)}">
-    <p>You haven't dismissed any alerts yet.</p>
-    <p class="hint">Click "Not useful" on a notable/significant move and it'll show up here.</p>
+    <div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(sensitivities)}">
+        <div class="icon">◈</div>
+        <h3>You haven't dismissed any alerts yet</h3>
+        <p class="hint">Click <strong>"Not useful"</strong> on a notable or significant move and it'll show up here.</p>
+    </div>
+
+    <div class="table-wrapper" th:unless="${#lists.isEmpty(sensitivities)}">
+        <table id="sensitivity-table" class="watchlist-table">
+            <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Multiplier</th>
+                <th>Dismissals</th>
+                <th>Last updated</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${sensitivities}">
+                <td class="symbol-cell" th:text="${s.symbol}">TCS</td>
+                <td class="price-cell" th:text="${#numbers.formatDecimal(s.thresholdMultiplier, 1, 2) + 'x'}">1.32x</td>
+                <td class="price-cell" th:text="${s.dismissCount}">2</td>
+                <td class="message-cell" th:text="${#temporals.format(s.updatedAt, 'dd MMM, HH:mm:ss')}">04 Sep, 14:32:10</td>
+                <td class="actions-cell">
+                    <form th:action="@{/watchlist/settings/sensitivity/reset}" method="post" style="margin:0;">
+                        <input type="hidden" name="symbol" th:value="${s.symbol}">
+                        <button type="submit" class="dismiss-btn">Reset</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="app-footer">
+        <p class="note">Multiplier caps at 3.0x · Resetting clears it back to 1.0x</p>
+    </footer>
+
 </div>
-
-<table id="sensitivity-table" class="watchlist-table" th:unless="${#lists.isEmpty(sensitivities)}">
-    <thead>
-    <tr>
-        <th>Symbol</th>
-        <th>Threshold multiplier</th>
-        <th>Times dismissed</th>
-        <th>Last updated</th>
-        <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="s : ${sensitivities}">
-        <td class="symbol-cell" th:text="${s.symbol}">TCS</td>
-        <td class="price-cell" th:text="${#numbers.formatDecimal(s.thresholdMultiplier, 1, 2) + 'x'}">1.32x</td>
-        <td class="price-cell" th:text="${s.dismissCount}">2</td>
-        <td class="message-cell" th:text="${#temporals.format(s.updatedAt, 'dd MMM, HH:mm:ss')}">04 Sep, 14:32:10</td>
-        <td>
-            <form th:action="@{/watchlist/settings/sensitivity/reset}" method="post" class="remove-form">
-                <input type="hidden" name="symbol" th:value="${s.symbol}">
-                <button type="submit" class="dismiss-btn" title="Reset to default sensitivity">Reset</button>
-            </form>
-        </td>
-    </tr>
-    </tbody>
-</table>
-
-<footer>
-    <p class="note">Multiplier caps at 3.0x — resetting clears it back to 1.0x rather than deleting the history.</p>
-</footer>
 
 </body>
 </html>
