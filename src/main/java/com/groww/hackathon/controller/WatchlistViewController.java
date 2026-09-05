@@ -1,5 +1,7 @@
 package com.groww.hackathon.controller;
 
+import com.groww.hackathon.dto.WatchlistItemView;
+import com.groww.hackathon.service.DigestService;
 import com.groww.hackathon.service.WatchlistService;
 import com.groww.hackathon.util.UserIdentityResolver;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Serves the server-rendered watchlist page. Kept separate from
@@ -21,12 +25,19 @@ import org.springframework.web.bind.annotation.*;
 public class WatchlistViewController {
 
     private final WatchlistService watchlistService;
+    private final DigestService digestService;
     private final UserIdentityResolver userIdentityResolver;
 
     @GetMapping
     public String view(Model model, HttpServletRequest request, HttpServletResponse response) {
         String userId = userIdentityResolver.resolve(request, response);
-        model.addAttribute("items", watchlistService.getWatchlistView(userId));
+
+        // compute the full watchlist once, then derive the one-line digest
+        // from the same data rather than re-querying anything
+        List<WatchlistItemView> items = watchlistService.getWatchlistView(userId);
+
+        model.addAttribute("items", items);
+        model.addAttribute("digest", digestService.buildHeadline(items).orElse(null));
         return "watchlist";
     }
 

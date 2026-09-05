@@ -1,5 +1,6 @@
 package com.groww.hackathon.dto;
 
+import com.groww.hackathon.model.ChangeContext;
 import com.groww.hackathon.model.ChangeSeverity;
 import com.groww.hackathon.model.DataFreshness;
 import lombok.AllArgsConstructor;
@@ -19,4 +20,5 @@ public class WatchlistItemView {
     private DataFreshness freshness;
     private Instant lastUpdated;
     private String message;         // human-readable, this is what you actually show in the UI
+    private ChangeContext context;  // MARKET_WIDE / ISOLATED / NONE — added for feature #1
 }

@@ -12,6 +12,10 @@
     <p class="subtitle">Not just prices — what actually changed since you last looked.</p>
 </header>
 
+<div id="digest-banner" class="digest-banner" th:if="${digest != null}" th:text="${digest}">
+    3 of 6 holdings moved together — looks market-wide. TCS is the outlier, up 4.2%, 3.0x its normal swing.
+</div>
+
 <form id="add-form" th:action="@{/watchlist/add}" method="post" class="add-form">
     <input type="text" name="symbol" placeholder="e.g. RELIANCE" required
            pattern="[A-Za-z]+" title="Letters only" maxlength="20">
@@ -43,6 +47,8 @@
         <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
         <td>
             <span class="badge" th:classappend="'badge-' + ${item.severity}" th:text="${item.severity}">NEW</span>
+            <span th:if="${item.context.name() == 'MARKET_WIDE'}" class="badge badge-context-muted">Market-wide</span>
+            <span th:if="${item.context.name() == 'ISOLATED'}" class="badge badge-context-outlier">Outlier</span>
         </td>
         <td>
             <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
