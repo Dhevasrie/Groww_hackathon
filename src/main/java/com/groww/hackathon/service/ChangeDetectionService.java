@@ -126,6 +126,20 @@ public class ChangeDetectionService {
 
         sensitivityRepository.save(sensitivity);
     }
+    public List<UserSymbolSensitivity> getSensitivities(String userId) {
+        return sensitivityRepository.findByUserId(userId);
+    }
 
+    /** Resets to default (1.0, dismissCount 0) but keeps the row — visible history
+     *  of "this was reset" beats silently reverting to invisible/untracked. */
+    @Transactional
+    public void resetSensitivity(String userId, String symbol) {
+        sensitivityRepository.findByUserIdAndSymbol(userId, symbol).ifPresent(s -> {
+            s.setThresholdMultiplier(1.0);
+            s.setDismissCount(0);
+            s.setUpdatedAt(Instant.now());
+            sensitivityRepository.save(s);
+        });
+    }
     public record ChangeResult(ChangeSeverity severity, Double percentChange, Double zScore, String message) {}
 }

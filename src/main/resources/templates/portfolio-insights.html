@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Today's Insights — Smart Market Watchlist</title>
+    <link rel="stylesheet" th:href="@{/css/watchlist.css}">
+</head>
+<body>
+
+<header>
+    <h1>Today's Insights</h1>
+    <p class="subtitle">A rollup of how your watchlist behaved today, not just how it looks right now.</p>
+</header>
+
+<p><a th:href="@{/watchlist}">&larr; Back to watchlist</a></p>
+
+<div class="digest-banner" th:if="${summary.loudestSymbol != null or summary.quietestSymbol != null}">
+    <span th:if="${summary.loudestSymbol != null}"
+          th:text="${summary.loudestSymbol} + ' was your loudest holding today.'">TCS was your loudest holding today.</span>
+    <span th:if="${summary.quietestSymbol != null}"
+          th:text="' ' + ${summary.quietestSymbol} + ' stayed quiet all day.'"> INFY stayed quiet all day.</span>
+</div>
+
+<p class="note">
+    <span th:text="${summary.totalMarketWideEvents}">0</span> market-wide event(s),
+    <span th:text="${summary.totalIsolatedEvents}">0</span> isolated event(s) detected today.
+</p>
+
+<div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(summary.stats)}">
+    <p>No activity recorded yet today.</p>
+    <p class="hint">This fills in as your watchlist gets polled through the day.</p>
+</div>
+
+<table id="insights-table" class="watchlist-table" th:unless="${#lists.isEmpty(summary.stats)}">
+    <thead>
+    <tr>
+        <th>Symbol</th>
+        <th>Notable events</th>
+        <th>Significant events</th>
+        <th>Market-wide</th>
+        <th>Isolated</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="s : ${summary.stats}">
+        <td class="symbol-cell" th:text="${s.symbol}">TCS</td>
+        <td class="price-cell" th:text="${s.notableEvents}">2</td>
+        <td class="price-cell" th:text="${s.significantEvents}">1</td>
+        <td class="price-cell" th:text="${s.marketWideEvents}">0</td>
+        <td class="price-cell" th:text="${s.isolatedEvents}">1</td>
+    </tr>
+    </tbody>
+</table>
+
+<footer>
+    <p class="note">Counts are edge-triggered — a symbol staying SIGNIFICANT across several polls counts once, not once per poll.</p>
+</footer>
+
+</body>
+</html>

@@ -21,6 +21,8 @@ public class WatchlistService {
     private final UserViewStateRepository userViewStateRepository;
     private final ChangeDetectionService changeDetectionService;
     private final MarketContextService marketContextService;
+    private final ChangeEventLogService changeEventLogService;
+    private final DailyRollupService dailyRollupService;
 
     @Transactional
     public WatchlistItem addSymbol(String userId, String symbol) {
@@ -61,6 +63,8 @@ public class WatchlistService {
                     : changeDetectionService.classify(symbol, currentPrice, lastSeenPrice,
                     changeDetectionService.resolveThresholdMultiplier(userId, symbol));
 
+            changeEventLogService.recordIfSignificant(userId, symbol, result);
+
             if (latest != null) {
                 UserViewState state = viewStateOpt.orElseGet(() ->
                         new UserViewState(null, userId, symbol, null, null, null));
@@ -85,7 +89,7 @@ public class WatchlistService {
         marketContextService.annotate(rawChanges)
                 .forEach(c -> contextBySymbol.put(c.symbol(), c.context()));
 
-        return pending.stream()
+        List<WatchlistItemView> result = pending.stream()
                 .map(p -> new WatchlistItemView(
                         p.symbol(), p.currentPrice(), p.lastSeenPrice(),
                         p.result().percentChange(), p.result().zScore(), p.result().severity(),
@@ -93,5 +97,9 @@ public class WatchlistService {
                         contextBySymbol.getOrDefault(p.symbol(), ChangeContext.NONE)
                 ))
                 .toList();
+
+        dailyRollupService.recordScan(userId, result);
+        return result;
+
     }
 }
