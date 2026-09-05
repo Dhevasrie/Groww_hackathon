@@ -69,7 +69,7 @@ A price tick arriving updates `market_tick` and `symbol_stats` exactly once, reg
 
 ---
 
-## Key decisions and trade-offs (be ready to defend these)
+## Key decisions and trade-offs 
 
 - **Simulated market feed, not a real API.** The `MarketDataSource` interface has exactly one implementation swapped in (`SimulatedMarketDataSource`) that does a per-symbol random walk with distinct volatility profiles per stock, plus deliberate ~8% dropped-tick and ~5% conflicting-source injection so staleness and conflict handling are actually exercised and demonstrable on demand — not theoretical. Swapping to a real feed (Finnhub, Alpha Vantage) means writing one new class behind the same interface; nothing else in the system changes. Chosen over a real API specifically to avoid rate-limit or downtime risk during a live judged walkthrough.
 - **PostgreSQL over H2.** H2 in-memory wipes on restart, which would directly contradict the "state persists across sessions" pitch. Using `schema.sql` + `ddl-auto=validate` (not `update`) so any schema drift fails loudly at startup instead of silently succeeding — a deliberate choice once the schema stabilized, favoring a loud failure over a quiet inconsistency.
@@ -80,17 +80,6 @@ A price tick arriving updates `market_tick` and `symbol_stats` exactly once, reg
 
 ---
 
-## Deliberately not built (and why)
-
-- **Real authentication** — out of scope for the judged decisions; cookie identity demonstrates the pattern without the overhead.
-- **WebSockets / true real-time streaming** — 5s polling is sufficient to demonstrate live-updating state and doesn't add connection-management complexity under time pressure.
-- **Predictive/AI-driven signals** — the brief asks for *detecting* meaningful change, not forecasting it; adding prediction would dilute the core thesis rather than strengthen it.
-- **Multi-exchange / crypto support** — no new engineering insight, just more integration surface.
-- **Live third-party market data** — see Trade-offs above.
-- **Point-in-time historical stats snapshot** for the symbol detail replay (it currently uses *current* `symbol_stats`, not the stats as they were at each historical point) — a known, stated simplification, not an oversight.
-- **Cross-symbol correlation, CSV import, shareable links** — each is a genuinely separate feature with no foundation already built for it; adding any would be feature-count padding, which the judging criteria explicitly say not to optimize for.
-
----
 
 ## Edge cases handled
 
