@@ -4,6 +4,7 @@ import com.groww.hackathon.dto.WatchlistItemView;
 import com.groww.hackathon.service.DigestService;
 import com.groww.hackathon.service.WatchlistService;
 import com.groww.hackathon.util.UserIdentityResolver;
+import com.groww.hackathon.service.feed.FeedIngestionScheduler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,17 +28,19 @@ public class WatchlistViewController {
     private final WatchlistService watchlistService;
     private final DigestService digestService;
     private final UserIdentityResolver userIdentityResolver;
+    private final FeedIngestionScheduler feedIngestionScheduler;
+
+
 
     @GetMapping
     public String view(Model model, HttpServletRequest request, HttpServletResponse response) {
         String userId = userIdentityResolver.resolve(request, response);
-
-        // compute the full watchlist once, then derive the one-line digest
-        // from the same data rather than re-querying anything
         List<WatchlistItemView> items = watchlistService.getWatchlistView(userId);
 
         model.addAttribute("items", items);
         model.addAttribute("digest", digestService.buildHeadline(items).orElse(null));
+        model.addAttribute("trackedSymbolCount", feedIngestionScheduler.getTrackedSymbolCount());
+        model.addAttribute("lastPollSecondsAgo", feedIngestionScheduler.getSecondsSinceLastPoll());
         return "watchlist";
     }
 

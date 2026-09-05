@@ -45,7 +45,8 @@ public class WatchlistService {
         // and the UserViewState "mark as seen" side effect, unchanged.
         record PendingView(String symbol, Double currentPrice, Double lastSeenPrice,
                            ChangeDetectionService.ChangeResult result,
-                           DataFreshness freshness, Instant lastUpdated) {}
+                           DataFreshness freshness, Instant lastUpdated,
+                           double thresholdMultiplier) {}
 
         List<PendingView> pending = items.stream().map(item -> {
             String symbol = item.getSymbol();
@@ -57,11 +58,12 @@ public class WatchlistService {
             Double lastSeenPrice = viewStateOpt.map(UserViewState::getLastSeenPrice).orElse(null);
             DataFreshness freshness = changeDetectionService.assessFreshness(latest, symbol);
 
+            double multiplier = changeDetectionService.resolveThresholdMultiplier(userId, symbol); // add this line
+
             ChangeDetectionService.ChangeResult result = (currentPrice == null)
                     ? new ChangeDetectionService.ChangeResult(
                     ChangeSeverity.NEW, null, null, "No market data yet for " + symbol)
-                    : changeDetectionService.classify(symbol, currentPrice, lastSeenPrice,
-                    changeDetectionService.resolveThresholdMultiplier(userId, symbol));
+                    : changeDetectionService.classify(symbol, currentPrice, lastSeenPrice, multiplier);
 
             changeEventLogService.recordIfSignificant(userId, symbol, result);
 
@@ -75,7 +77,7 @@ public class WatchlistService {
             }
 
             return new PendingView(symbol, currentPrice, lastSeenPrice, result, freshness,
-                    latest != null ? latest.getTimestamp() : null);
+                    latest != null ? latest.getTimestamp() : null, multiplier);  // pass multiplier
         }).toList();
 
         // Pass 2: one market-context read across the whole watchlist at once —
@@ -94,7 +96,8 @@ public class WatchlistService {
                         p.symbol(), p.currentPrice(), p.lastSeenPrice(),
                         p.result().percentChange(), p.result().zScore(), p.result().severity(),
                         p.freshness(), p.lastUpdated(), p.result().message(),
-                        contextBySymbol.getOrDefault(p.symbol(), ChangeContext.NONE)
+                        contextBySymbol.getOrDefault(p.symbol(), ChangeContext.NONE),
+                        p.thresholdMultiplier()   // pass it to the view
                 ))
                 .toList();
 

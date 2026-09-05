@@ -23,7 +23,9 @@ public class SimulatedMarketDataSource implements MarketDataSource {
             "INFY", 0.008,
             "ZOMATO", 0.025,
             "PAYTM", 0.030,
-            "HDFCBANK", 0.004
+            "HDFCBANK", 0.004,
+            "ICICIBANK", 0.005,
+            "TATAMOTORS", 0.018
     );
 
     private final Map<String, Double> basePrice = Map.of(
@@ -32,7 +34,9 @@ public class SimulatedMarketDataSource implements MarketDataSource {
             "INFY", 1550.0,
             "ZOMATO", 210.0,
             "PAYTM", 650.0,
-            "HDFCBANK", 1650.0
+            "HDFCBANK", 1650.0,
+            "ICICIBANK", 1200.0,
+            "TATAMOTORS", 950.0
     );
 
     @Override

@@ -45,7 +45,7 @@ class ChangeDetectionServiceTest {
     @Test
     void classify_noLastSeenPrice_returnsNew() {
         ChangeDetectionService.ChangeResult result =
-                changeDetectionService.classify("RELIANCE", 2500.0, null);
+                changeDetectionService.classify("RELIANCE", 2500.0, null, 1.0);
 
         assertThat(result.severity()).isEqualTo(ChangeSeverity.NEW);
         assertThat(result.percentChange()).isNull();
@@ -58,7 +58,7 @@ class ChangeDetectionServiceTest {
         when(statsRepository.findById("RELIANCE")).thenReturn(Optional.of(statsWithStddev(0.02)));
 
         ChangeDetectionService.ChangeResult result =
-                changeDetectionService.classify("RELIANCE", 100.5, 100.0);
+                changeDetectionService.classify("RELIANCE", 100.5, 100.0, 1.0);
 
         assertThat(result.severity()).isEqualTo(ChangeSeverity.QUIET);
     }
@@ -69,7 +69,7 @@ class ChangeDetectionServiceTest {
         when(statsRepository.findById("RELIANCE")).thenReturn(Optional.of(statsWithStddev(0.01)));
 
         ChangeDetectionService.ChangeResult result =
-                changeDetectionService.classify("RELIANCE", 101.5, 100.0);
+                changeDetectionService.classify("RELIANCE", 101.5, 100.0, 1.0);
 
         assertThat(result.severity()).isEqualTo(ChangeSeverity.NOTABLE);
     }
@@ -80,7 +80,7 @@ class ChangeDetectionServiceTest {
         when(statsRepository.findById("RELIANCE")).thenReturn(Optional.of(statsWithStddev(0.01)));
 
         ChangeDetectionService.ChangeResult result =
-                changeDetectionService.classify("RELIANCE", 103.0, 100.0);
+                changeDetectionService.classify("RELIANCE", 103.0, 100.0, 1.0);
 
         assertThat(result.severity()).isEqualTo(ChangeSeverity.SIGNIFICANT);
     }
@@ -91,7 +91,7 @@ class ChangeDetectionServiceTest {
         when(statsRepository.findById("WIPRO")).thenReturn(Optional.empty());
 
         ChangeDetectionService.ChangeResult result =
-                changeDetectionService.classify("WIPRO", 101.0, 100.0);
+                changeDetectionService.classify("WIPRO", 101.0, 100.0, 1.0);
 
         // 1% move / fallback stddev 0.01 -> z = 1.0 exactly -> NOTABLE boundary
         assertThat(result.zScore()).isEqualTo(1.0, org.assertj.core.data.Offset.offset(0.0001));

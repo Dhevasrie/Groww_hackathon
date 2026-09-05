@@ -49,7 +49,7 @@ public class SymbolDetailService {
 
         for (MarketTick tick : chronological) {
             ChangeDetectionService.ChangeResult result =
-                    changeDetectionService.classify(symbol, tick.getPrice(), previousPrice);
+                    changeDetectionService.classify(symbol, tick.getPrice(), previousPrice, 1.0);
 
             points.add(new TickPoint(tick.getTimestamp(), tick.getPrice(), tick.getVolume(),
                     tick.getSourceId(), result.severity(), result.percentChange(), result.zScore()));

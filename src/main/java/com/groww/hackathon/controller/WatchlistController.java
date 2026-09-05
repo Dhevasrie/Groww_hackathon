@@ -3,7 +3,9 @@ package com.groww.hackathon.controller;
 import com.groww.hackathon.dto.WatchlistItemView;
 import com.groww.hackathon.model.WatchlistItem;
 import com.groww.hackathon.service.ChangeDetectionService;
+import com.groww.hackathon.service.DigestService;
 import com.groww.hackathon.service.WatchlistService;
+import com.groww.hackathon.service.feed.FeedIngestionScheduler;
 import com.groww.hackathon.util.UserIdentityResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/watchlist")
@@ -20,6 +23,8 @@ public class WatchlistController {
     private final WatchlistService watchlistService;
     private final ChangeDetectionService changeDetectionService;
     private final UserIdentityResolver userIdentityResolver;
+    private final FeedIngestionScheduler feedIngestionScheduler;
+    private final DigestService digestService;
 
     @GetMapping
     public List<WatchlistItemView> getWatchlist(HttpServletRequest req, HttpServletResponse res) {
@@ -45,5 +50,19 @@ public class WatchlistController {
                               HttpServletRequest req, HttpServletResponse res) {
         String userId = userIdentityResolver.resolve(req, res);
         changeDetectionService.recordDismissal(userId, symbol.trim().toUpperCase());
+    }
+
+    @GetMapping("/status")
+    public Map<String, Object> getStatus() {
+        return Map.of(
+                "trackedSymbolCount", feedIngestionScheduler.getTrackedSymbolCount(),
+                "lastPollSecondsAgo", feedIngestionScheduler.getSecondsSinceLastPoll()
+        );
+    }
+
+    @GetMapping("/digest")
+    public Map<String, String> getDigest(HttpServletRequest req, HttpServletResponse res) {
+        List<WatchlistItemView> items = watchlistService.getWatchlistView(userIdentityResolver.resolve(req, res));
+        return Map.of("headline", digestService.buildHeadline(items).orElse(""));
     }
 }

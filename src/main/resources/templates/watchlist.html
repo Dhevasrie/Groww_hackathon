@@ -21,6 +21,11 @@
     3 of 6 holdings moved together — looks market-wide. TCS is the outlier, up 4.2%, 3.0x its normal swing.
 </div>
 
+<div id="status-strip" class="status-strip">
+    Polling <span id="status-symbol-count" th:text="${trackedSymbolCount}">6</span> symbols globally ·
+    last poll <span id="status-last-poll" th:text="${lastPollSecondsAgo}">0</span>s ago
+</div>
+
 <form id="add-form" th:action="@{/watchlist/add}" method="post" class="add-form">
     <input type="text" id="symbol-input" name="symbol" placeholder="e.g. RELIANCE" required
            pattern="[A-Za-z]+" title="Letters only" maxlength="20" autocomplete="off">
@@ -29,7 +34,7 @@
 
 <div id="empty-state" class="empty-state" th:if="${#lists.isEmpty(items)}">
     <p>Your watchlist is empty. Add a symbol above to get started.</p>
-    <p class="hint">Try: RELIANCE, TCS, INFY, ZOMATO, PAYTM, HDFCBANK</p>
+    <p class="hint">Try: RELIANCE, TCS, INFY, ZOMATO, PAYTM, HDFCBANK, ICICIBANK, TATAMOTORS</p>
 </div>
 
 <table id="watchlist-table" class="watchlist-table" th:unless="${#lists.isEmpty(items)}">
@@ -44,33 +49,46 @@
     </tr>
     </thead>
     <tbody>
-    <tr th:each="item : ${items}"
-        th:attr="data-symbol=${item.symbol}"
-        th:class="'row-' + ${item.severity}">
-        <td class="symbol-cell">
-            <a th:href="@{'/watchlist/' + ${item.symbol}}" class="symbol-link" th:text="${item.symbol}">RELIANCE</a>
-        </td>
-        <td class="price-cell" th:text="${#numbers.formatDecimal(item.currentPrice, 1, 2)}">1234.56</td>
-        <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
-        <td>
-            <span class="badge" th:classappend="'badge-' + ${item.severity}" th:text="${item.severity}">NEW</span>
-            <span th:if="${item.context.name() == 'MARKET_WIDE'}" class="badge badge-context-muted">Market-wide</span>
-            <span th:if="${item.context.name() == 'ISOLATED'}" class="badge badge-context-outlier">Outlier</span>
-        </td>
-        <td>
-            <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
-        </td>
-        <td>
-            <button type="button" class="dismiss-btn"
-                    th:if="${item.severity.name() == 'NOTABLE' or item.severity.name() == 'SIGNIFICANT'}"
-                    th:attr="data-symbol=${item.symbol}"
-                    title="Not useful — raises the bar for this symbol">Not useful</button>
-            <form th:action="@{/watchlist/remove}" method="post" class="remove-form">
-                <input type="hidden" name="symbol" th:value="${item.symbol}">
-                <button type="submit" class="remove-btn" title="Remove">&times;</button>
-            </form>
-        </td>
-    </tr>
+    <th:block th:each="item : ${items}">
+        <tr th:attr="data-symbol=${item.symbol}"
+            th:class="'row-' + ${item.severity}">
+            <td class="symbol-cell">
+                <button type="button" class="expand-toggle" th:attr="data-symbol=${item.symbol}">▸</button>
+                <a th:href="@{'/watchlist/' + ${item.symbol}}" class="symbol-link" th:text="${item.symbol}">RELIANCE</a>
+            </td>
+            <td class="price-cell" th:text="${#numbers.formatDecimal(item.currentPrice, 1, 2)}">1234.56</td>
+            <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
+            <td>
+                <div class="status-badges">
+                    <span class="badge" th:classappend="'badge-' + ${item.severity}" th:text="${item.severity}">NEW</span>
+                    <span th:if="${item.context.name() == 'MARKET_WIDE'}" class="badge badge-context-muted">Market-wide</span>
+                    <span th:if="${item.context.name() == 'ISOLATED'}" class="badge badge-context-outlier">Outlier</span>
+                </div>
+            </td>
+            <td>
+                <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
+                <span class="freshness-age"></span>
+            </td>
+            <td>
+                <button type="button" class="dismiss-btn"
+                        th:if="${item.severity.name() == 'NOTABLE' or item.severity.name() == 'SIGNIFICANT'}"
+                        th:attr="data-symbol=${item.symbol}"
+                        title="Not useful — raises the bar for this symbol">Not useful</button>
+                <form th:action="@{/watchlist/remove}" method="post" class="remove-form">
+                    <input type="hidden" name="symbol" th:value="${item.symbol}">
+                    <button type="submit" class="remove-btn" title="Remove">&times;</button>
+                </form>
+            </td>
+        </tr>
+        <tr class="explain-row" th:attr="data-symbol-for=${item.symbol}" style="display:none;">
+            <td colspan="6">
+                <div class="explain-panel">
+                    <span>z-score: <strong class="explain-zscore" th:text="${item.zScore != null ? #numbers.formatDecimal(item.zScore, 1, 2) : '—'}">—</strong></span>
+                    <span>sensitivity: <strong class="explain-sensitivity" th:text="${#numbers.formatDecimal(item.thresholdMultiplier, 1, 2)} + 'x'">1.00x</strong></span>
+                </div>
+            </td>
+        </tr>
+    </th:block>
     </tbody>
 </table>
 
@@ -81,5 +99,6 @@
 <script th:src="@{/js/watchlist.js}"></script>
 <script th:src="@{/js/symbol-autocomplete.js}"></script>
 <script th:src="@{/js/dismiss.js}"></script>
+<script th:src="@{/js/explain-toggle.js}"></script>
 </body>
 </html>

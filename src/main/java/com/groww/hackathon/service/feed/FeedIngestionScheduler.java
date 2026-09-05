@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -18,11 +19,15 @@ public class FeedIngestionScheduler {
     // hardcoded universe for the hackathon — a real system would drive this from
     // "the set of symbols currently on any user's watchlist," see README trade-offs
     private static final List<String> TRACKED_SYMBOLS =
-            List.of("RELIANCE", "TCS", "INFY", "ZOMATO", "PAYTM", "HDFCBANK");
+            List.of("RELIANCE", "TCS", "INFY", "ZOMATO", "PAYTM", "HDFCBANK", "ICICIBANK", "TATAMOTORS");
 
     private final MarketDataSource dataSource;
     private final MarketTickRepository tickRepository;
     private final SymbolStatsRepository statsRepository;
+
+    // Exposed so the UI can show the scale claim ("global polling of distinct
+    // symbols, not per-user") actually happening live, not just asserted in the README.
+    private volatile Instant lastPollAt = Instant.now();
 
     @Scheduled(fixedRate = 5000) // every 5s — fast enough to demo, slow enough to read logs live
     public void ingest() {
@@ -42,6 +47,7 @@ public class FeedIngestionScheduler {
 
             updateStats(symbol, raw.price());
         }
+        lastPollAt = Instant.now();
     }
 
     private void updateStats(String symbol, double newPrice) {
@@ -69,5 +75,13 @@ public class FeedIngestionScheduler {
         }
 
         statsRepository.save(stats);
+    }
+
+    public int getTrackedSymbolCount() {
+        return TRACKED_SYMBOLS.size();
+    }
+
+    public long getSecondsSinceLastPoll() {
+        return Duration.between(lastPollAt, Instant.now()).getSeconds();
     }
 }

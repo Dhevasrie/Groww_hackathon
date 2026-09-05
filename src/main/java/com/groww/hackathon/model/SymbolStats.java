@@ -24,4 +24,5 @@ public class SymbolStats {
 
     @Column(name = "sample_count", nullable = false)
     private long sampleCount = 0;
+
 }

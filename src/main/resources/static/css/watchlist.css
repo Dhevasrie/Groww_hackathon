@@ -254,3 +254,41 @@ footer {
 .row-flash {
     animation: flash-update 0.9s ease-out;
 }
+.status-strip {
+    font-size: 0.85rem;
+    color: var(--text-muted, #888);
+    margin-bottom: 1rem;
+}
+.status-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+
+.expand-toggle {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-right: 6px;
+    padding: 0;
+}
+
+.explain-panel {
+    display: flex;
+    gap: 20px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.02);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.explain-link {
+    color: var(--new);
+    text-decoration: none;
+}
+.freshness-age {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+}

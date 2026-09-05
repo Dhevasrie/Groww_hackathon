@@ -17,16 +17,15 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ChangeDetectionService {
 
-    // 4x the 5s ingestion interval — one missed cycle is noise, four in a row is a real problem
     private static final Duration STALE_THRESHOLD = Duration.ofSeconds(20);
-    private static final double CONFLICT_PRICE_DIFF_THRESHOLD = 0.003; // 0.3% disagreement between sources
+    private static final double CONFLICT_PRICE_DIFF_THRESHOLD = 0.003;
     private static final double SIGNIFICANT_Z = 2.0;
     private static final double NOTABLE_Z = 1.0;
-
-    // each dismissal raises the bar by 15%, capped so it can never require an
-    // absurd move to ever flag again
-    private static final double DISMISSAL_STEP = 1.15;
-    private static final double MAX_MULTIPLIER = 3.0;
+    private static final long MIN_SAMPLES_FOR_RELIABLE_STATS = 5;
+    private static final double FALLBACK_STDDEV = 0.01;
+    private static final double DEFAULT_THRESHOLD_MULTIPLIER = 1.0;
+    private static final double DISMISSAL_INCREASE_FACTOR = 1.15;
+    private static final double MAX_THRESHOLD_MULTIPLIER = 3.0;
 
     private final MarketTickRepository tickRepository;
     private final SymbolStatsRepository statsRepository;
@@ -37,7 +36,7 @@ public class ChangeDetectionService {
     }
 
     public DataFreshness assessFreshness(MarketTick latest, String symbol) {
-        if (latest == null) return DataFreshness.STALE; // no data at all yet
+        if (latest == null) return DataFreshness.STALE;
         if (isConflicted(symbol)) return DataFreshness.CONFLICTED;
 
         boolean isStale = Duration.between(latest.getTimestamp(), Instant.now())
@@ -45,8 +44,6 @@ public class ChangeDetectionService {
         return isStale ? DataFreshness.STALE : DataFreshness.FRESH;
     }
 
-    // looks at the 2 most recent ticks; if they came from different sources and
-    // disagree by more than the threshold, flag it rather than silently picking one
     private boolean isConflicted(String symbol) {
         List<MarketTick> recent = tickRepository.findTop50BySymbolOrderByTimestampDesc(symbol);
         if (recent.size() < 2) return false;
@@ -59,13 +56,54 @@ public class ChangeDetectionService {
         return diff > CONFLICT_PRICE_DIFF_THRESHOLD;
     }
 
-    /** Original signature, unchanged behavior — default sensitivity (multiplier 1.0). */
-    public ChangeResult classify(String symbol, double currentPrice, Double lastSeenPrice) {
-        return classify(symbol, currentPrice, lastSeenPrice, 1.0);
+    public double resolveThresholdMultiplier(String userId, String symbol) {
+        return sensitivityRepository.findByUserIdAndSymbol(userId, symbol)
+                .map(UserSymbolSensitivity::getThresholdMultiplier)
+                .orElse(DEFAULT_THRESHOLD_MULTIPLIER);
     }
 
-    /** Personalized variant — thresholdMultiplier scales how big a move has to be to count. */
-    public ChangeResult classify(String symbol, double currentPrice, Double lastSeenPrice, double thresholdMultiplier) {
+    @Transactional
+    public void recordDismissal(String userId, String symbol) {
+        UserSymbolSensitivity sensitivity = sensitivityRepository.findByUserIdAndSymbol(userId, symbol)
+                .orElseGet(() -> {
+                    UserSymbolSensitivity fresh = new UserSymbolSensitivity();
+                    fresh.setUserId(userId);
+                    fresh.setSymbol(symbol);
+                    fresh.setThresholdMultiplier(DEFAULT_THRESHOLD_MULTIPLIER);
+                    fresh.setDismissCount(0);
+                    return fresh;
+                });
+
+        double raised = sensitivity.getThresholdMultiplier() * DISMISSAL_INCREASE_FACTOR;
+        sensitivity.setThresholdMultiplier(Math.min(raised, MAX_THRESHOLD_MULTIPLIER));
+        sensitivity.setDismissCount(sensitivity.getDismissCount() + 1);
+        sensitivity.setUpdatedAt(Instant.now());
+
+        sensitivityRepository.save(sensitivity);
+    }
+
+    /** Powers the sensitivity settings page — every symbol this user has ever dismissed. */
+    public List<UserSymbolSensitivity> getSensitivities(String userId) {
+        return sensitivityRepository.findByUserId(userId);
+    }
+
+    /**
+     * Resets a symbol's learned sensitivity back to default (1.0, 0 dismissals)
+     * without deleting the row — the settings page can then show "reset" as a
+     * visible state rather than the symbol just disappearing from the list.
+     */
+    @Transactional
+    public void resetSensitivity(String userId, String symbol) {
+        sensitivityRepository.findByUserIdAndSymbol(userId, symbol).ifPresent(sensitivity -> {
+            sensitivity.setThresholdMultiplier(DEFAULT_THRESHOLD_MULTIPLIER);
+            sensitivity.setDismissCount(0);
+            sensitivity.setUpdatedAt(Instant.now());
+            sensitivityRepository.save(sensitivity);
+        });
+    }
+
+    public ChangeResult classify(String symbol, double currentPrice, Double lastSeenPrice,
+                                 double thresholdMultiplier) {
         if (lastSeenPrice == null) {
             return new ChangeResult(ChangeSeverity.NEW, null, null,
                     "New to your watchlist — no baseline yet");
@@ -74,8 +112,8 @@ public class ChangeDetectionService {
         double percentChange = (currentPrice - lastSeenPrice) / lastSeenPrice;
 
         SymbolStats stats = statsRepository.findById(symbol).orElse(null);
-        // floor prevents divide-by-near-zero for a symbol with almost no history yet
-        double stddev = (stats != null) ? Math.max(stats.getStddevReturn(), 1e-6) : 0.01;
+        boolean hasReliableStats = stats != null && stats.getSampleCount() >= MIN_SAMPLES_FOR_RELIABLE_STATS;
+        double stddev = hasReliableStats ? Math.max(stats.getStddevReturn(), 1e-6) : FALLBACK_STDDEV;
 
         double zScore = percentChange / stddev;
         double absZ = Math.abs(zScore);
@@ -102,44 +140,5 @@ public class ChangeDetectionService {
         return new ChangeResult(severity, percentChange, zScore, message);
     }
 
-    /** 1.0 if the user has never adjusted sensitivity for this symbol. */
-    public double resolveThresholdMultiplier(String userId, String symbol) {
-        return sensitivityRepository.findByUserIdAndSymbol(userId, symbol)
-                .map(UserSymbolSensitivity::getThresholdMultiplier)
-                .orElse(1.0);
-    }
-
-    @Transactional
-    public void recordDismissal(String userId, String symbol) {
-        UserSymbolSensitivity sensitivity = sensitivityRepository.findByUserIdAndSymbol(userId, symbol)
-                .orElseGet(() -> {
-                    UserSymbolSensitivity fresh = new UserSymbolSensitivity();
-                    fresh.setUserId(userId);
-                    fresh.setSymbol(symbol);
-                    return fresh;
-                });
-
-        sensitivity.setDismissCount(sensitivity.getDismissCount() + 1);
-        double raised = sensitivity.getThresholdMultiplier() * DISMISSAL_STEP;
-        sensitivity.setThresholdMultiplier(Math.min(raised, MAX_MULTIPLIER));
-        sensitivity.setUpdatedAt(Instant.now());
-
-        sensitivityRepository.save(sensitivity);
-    }
-    public List<UserSymbolSensitivity> getSensitivities(String userId) {
-        return sensitivityRepository.findByUserId(userId);
-    }
-
-    /** Resets to default (1.0, dismissCount 0) but keeps the row — visible history
-     *  of "this was reset" beats silently reverting to invisible/untracked. */
-    @Transactional
-    public void resetSensitivity(String userId, String symbol) {
-        sensitivityRepository.findByUserIdAndSymbol(userId, symbol).ifPresent(s -> {
-            s.setThresholdMultiplier(1.0);
-            s.setDismissCount(0);
-            s.setUpdatedAt(Instant.now());
-            sensitivityRepository.save(s);
-        });
-    }
     public record ChangeResult(ChangeSeverity severity, Double percentChange, Double zScore, String message) {}
 }
