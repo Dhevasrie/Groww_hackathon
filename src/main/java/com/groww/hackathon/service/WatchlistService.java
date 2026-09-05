@@ -58,7 +58,8 @@ public class WatchlistService {
             ChangeDetectionService.ChangeResult result = (currentPrice == null)
                     ? new ChangeDetectionService.ChangeResult(
                     ChangeSeverity.NEW, null, null, "No market data yet for " + symbol)
-                    : changeDetectionService.classify(symbol, currentPrice, lastSeenPrice);
+                    : changeDetectionService.classify(symbol, currentPrice, lastSeenPrice,
+                    changeDetectionService.resolveThresholdMultiplier(userId, symbol));
 
             if (latest != null) {
                 UserViewState state = viewStateOpt.orElseGet(() ->

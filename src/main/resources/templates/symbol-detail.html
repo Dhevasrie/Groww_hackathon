@@ -1,10 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title th:text="${symbol} + ' — Smart Market Watchlist'">Symbol detail</title>
+    <link rel="stylesheet" th:href="@{/css/watchlist.css}">
+    <link rel="stylesheet" th:href="@{/css/symbol-detail.css}">
 </head>
 <body>
-$END$
+
+<a th:href="@{/watchlist}" class="back-link">&larr; Back to watchlist</a>
+<header>
+    <h1 th:text="${symbol}">RELIANCE</h1>
+    <p class="subtitle">Full history of every classified change for this symbol.</p>
+</header>
+
+<div id="empty-history" class="empty-state" th:if="${#lists.isEmpty(history)}">
+    <p>No price history yet for this symbol.</p>
+</div>
+
+<div class="chart-card" th:unless="${#lists.isEmpty(history)}">
+    <canvas id="price-chart" width="820" height="220"></canvas>
+</div>
+
+<script th:unless="${#lists.isEmpty(history)}"
+        th:utext="'const chartLabels = ' + ${chartLabelsJson} + '; const chartPrices = ' + ${chartPricesJson} + ';'">
+</script>
+<script th:unless="${#lists.isEmpty(history)}" th:src="@{/js/symbol-detail.js}"></script>
+
+<table id="history-table" class="watchlist-table" th:unless="${#lists.isEmpty(history)}">
+    <thead>
+    <tr>
+        <th>Time</th>
+        <th>Price</th>
+        <th>Change</th>
+        <th>Severity</th>
+        <th>Source</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="point : ${history}" th:class="'row-' + ${point.severity}">
+        <td th:text="${#temporals.format(point.timestamp, 'HH:mm:ss')}">10:00:00</td>
+        <td class="price-cell" th:text="${#numbers.formatDecimal(point.price, 1, 2)}">1234.56</td>
+        <td th:text="${point.percentChange != null ? #numbers.formatDecimal(point.percentChange * 100, 1, 2) + '%' : '—'}">—</td>
+        <td>
+            <span class="badge" th:classappend="'badge-' + ${point.severity}" th:text="${point.severity}">NEW</span>
+        </td>
+        <td class="message-cell" th:text="${point.sourceId}">feed-a</td>
+    </tr>
+    </tbody>
+</table>
+
 </body>
 </html>

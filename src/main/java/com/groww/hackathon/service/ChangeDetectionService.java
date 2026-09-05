@@ -3,8 +3,10 @@ package com.groww.hackathon.service;
 import com.groww.hackathon.model.*;
 import com.groww.hackathon.repository.MarketTickRepository;
 import com.groww.hackathon.repository.SymbolStatsRepository;
+import com.groww.hackathon.repository.UserSymbolSensitivityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,8 +23,14 @@ public class ChangeDetectionService {
     private static final double SIGNIFICANT_Z = 2.0;
     private static final double NOTABLE_Z = 1.0;
 
+    // each dismissal raises the bar by 15%, capped so it can never require an
+    // absurd move to ever flag again
+    private static final double DISMISSAL_STEP = 1.15;
+    private static final double MAX_MULTIPLIER = 3.0;
+
     private final MarketTickRepository tickRepository;
     private final SymbolStatsRepository statsRepository;
+    private final UserSymbolSensitivityRepository sensitivityRepository;
 
     public Optional<MarketTick> latestTick(String symbol) {
         return tickRepository.findFirstBySymbolOrderByTimestampDesc(symbol);
@@ -51,7 +59,13 @@ public class ChangeDetectionService {
         return diff > CONFLICT_PRICE_DIFF_THRESHOLD;
     }
 
+    /** Original signature, unchanged behavior — default sensitivity (multiplier 1.0). */
     public ChangeResult classify(String symbol, double currentPrice, Double lastSeenPrice) {
+        return classify(symbol, currentPrice, lastSeenPrice, 1.0);
+    }
+
+    /** Personalized variant — thresholdMultiplier scales how big a move has to be to count. */
+    public ChangeResult classify(String symbol, double currentPrice, Double lastSeenPrice, double thresholdMultiplier) {
         if (lastSeenPrice == null) {
             return new ChangeResult(ChangeSeverity.NEW, null, null,
                     "New to your watchlist — no baseline yet");
@@ -66,13 +80,16 @@ public class ChangeDetectionService {
         double zScore = percentChange / stddev;
         double absZ = Math.abs(zScore);
 
+        double significantCutoff = SIGNIFICANT_Z * thresholdMultiplier;
+        double notableCutoff = NOTABLE_Z * thresholdMultiplier;
+
         ChangeSeverity severity;
         String message;
-        if (absZ >= SIGNIFICANT_Z) {
+        if (absZ >= significantCutoff) {
             severity = ChangeSeverity.SIGNIFICANT;
             message = String.format("Unusual move for %s: %.2f%% is %.1fx its normal volatility",
                     symbol, percentChange * 100, absZ);
-        } else if (absZ >= NOTABLE_Z) {
+        } else if (absZ >= notableCutoff) {
             severity = ChangeSeverity.NOTABLE;
             message = String.format("%.2f%% change — somewhat above %s's normal range",
                     percentChange * 100, symbol);
@@ -83,6 +100,31 @@ public class ChangeDetectionService {
         }
 
         return new ChangeResult(severity, percentChange, zScore, message);
+    }
+
+    /** 1.0 if the user has never adjusted sensitivity for this symbol. */
+    public double resolveThresholdMultiplier(String userId, String symbol) {
+        return sensitivityRepository.findByUserIdAndSymbol(userId, symbol)
+                .map(UserSymbolSensitivity::getThresholdMultiplier)
+                .orElse(1.0);
+    }
+
+    @Transactional
+    public void recordDismissal(String userId, String symbol) {
+        UserSymbolSensitivity sensitivity = sensitivityRepository.findByUserIdAndSymbol(userId, symbol)
+                .orElseGet(() -> {
+                    UserSymbolSensitivity fresh = new UserSymbolSensitivity();
+                    fresh.setUserId(userId);
+                    fresh.setSymbol(symbol);
+                    return fresh;
+                });
+
+        sensitivity.setDismissCount(sensitivity.getDismissCount() + 1);
+        double raised = sensitivity.getThresholdMultiplier() * DISMISSAL_STEP;
+        sensitivity.setThresholdMultiplier(Math.min(raised, MAX_MULTIPLIER));
+        sensitivity.setUpdatedAt(Instant.now());
+
+        sensitivityRepository.save(sensitivity);
     }
 
     public record ChangeResult(ChangeSeverity severity, Double percentChange, Double zScore, String message) {}

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -57,5 +58,15 @@ public class SimulatedMarketDataSource implements MarketDataSource {
         }
 
         return new RawTick(newPrice, volume, sourceId);
+    }
+
+    /**
+     * The known symbol universe for this demo feed — same source of truth
+     * used to seed the random walk. Powers the search-as-you-type
+     * autocomplete so the suggestion list can never drift out of sync with
+     * what the feed actually simulates prices for.
+     */
+    public Set<String> knownSymbols() {
+        return basePrice.keySet();
     }
 }

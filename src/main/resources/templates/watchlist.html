@@ -17,8 +17,8 @@
 </div>
 
 <form id="add-form" th:action="@{/watchlist/add}" method="post" class="add-form">
-    <input type="text" name="symbol" placeholder="e.g. RELIANCE" required
-           pattern="[A-Za-z]+" title="Letters only" maxlength="20">
+    <input type="text" id="symbol-input" name="symbol" placeholder="e.g. RELIANCE" required
+           pattern="[A-Za-z]+" title="Letters only" maxlength="20" autocomplete="off">
     <button type="submit">Add to watchlist</button>
 </form>
 
@@ -42,7 +42,9 @@
     <tr th:each="item : ${items}"
         th:attr="data-symbol=${item.symbol}"
         th:class="'row-' + ${item.severity}">
-        <td class="symbol-cell" th:text="${item.symbol}">RELIANCE</td>
+        <td class="symbol-cell">
+            <a th:href="@{'/watchlist/' + ${item.symbol}}" class="symbol-link" th:text="${item.symbol}">RELIANCE</a>
+        </td>
         <td class="price-cell" th:text="${#numbers.formatDecimal(item.currentPrice, 1, 2)}">1234.56</td>
         <td class="message-cell" th:text="${item.message}">First time viewing — baseline set</td>
         <td>
@@ -54,6 +56,10 @@
             <span class="freshness" th:classappend="'freshness-' + ${item.freshness}" th:text="${item.freshness}">FRESH</span>
         </td>
         <td>
+            <button type="button" class="dismiss-btn"
+                    th:if="${item.severity.name() == 'NOTABLE' or item.severity.name() == 'SIGNIFICANT'}"
+                    th:attr="data-symbol=${item.symbol}"
+                    title="Not useful — raises the bar for this symbol">Not useful</button>
             <form th:action="@{/watchlist/remove}" method="post" class="remove-form">
                 <input type="hidden" name="symbol" th:value="${item.symbol}">
                 <button type="submit" class="remove-btn" title="Remove">&times;</button>
@@ -68,5 +74,7 @@
 </footer>
 
 <script th:src="@{/js/watchlist.js}"></script>
+<script th:src="@{/js/symbol-autocomplete.js}"></script>
+<script th:src="@{/js/dismiss.js}"></script>
 </body>
 </html>

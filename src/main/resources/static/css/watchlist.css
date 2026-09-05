@@ -52,6 +52,34 @@ header h1 {
     display: flex;
     gap: 8px;
     margin-bottom: 24px;
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 220px;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 10;
+}
+
+.autocomplete-item {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background: rgba(74,144,217,0.15);
+    color: var(--new);
 }
 
 .add-form input {
@@ -171,6 +199,27 @@ header h1 {
 .freshness-CONFLICTED { color: var(--conflicted); }
 
 .remove-form { margin: 0; }
+
+.dismiss-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    border-radius: 999px;
+    padding: 3px 10px;
+    cursor: pointer;
+    margin-right: 6px;
+}
+
+.dismiss-btn:hover {
+    border-color: var(--new);
+    color: var(--new);
+}
+
+.dismiss-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
 
 .remove-btn {
     background: none;

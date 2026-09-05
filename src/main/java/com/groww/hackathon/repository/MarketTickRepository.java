@@ -14,4 +14,5 @@ public interface MarketTickRepository extends JpaRepository<MarketTick, Long> {
     List<MarketTick> findTop50BySymbolOrderByTimestampDesc(String symbol);
 
     List<String> findDistinctSymbolBy();
+    List<MarketTick> findTop200BySymbolOrderByTimestampDesc(String symbol);
 }

@@ -2,6 +2,7 @@ package com.groww.hackathon.controller;
 
 import com.groww.hackathon.dto.WatchlistItemView;
 import com.groww.hackathon.model.WatchlistItem;
+import com.groww.hackathon.service.ChangeDetectionService;
 import com.groww.hackathon.service.WatchlistService;
 import com.groww.hackathon.util.UserIdentityResolver;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,7 @@ import java.util.List;
 public class WatchlistController {
 
     private final WatchlistService watchlistService;
+    private final ChangeDetectionService changeDetectionService;
     private final UserIdentityResolver userIdentityResolver;
 
     @GetMapping
@@ -34,5 +36,14 @@ public class WatchlistController {
     public void removeSymbol(@PathVariable String symbol,
                              HttpServletRequest req, HttpServletResponse res) {
         watchlistService.removeSymbol(userIdentityResolver.resolve(req, res), symbol);
+    }
+
+    // "This wasn't useful" feedback — raises this user's alert threshold for
+    // this specific symbol going forward. See ChangeDetectionService.recordDismissal.
+    @PostMapping("/{symbol}/dismiss")
+    public void dismissChange(@PathVariable String symbol,
+                              HttpServletRequest req, HttpServletResponse res) {
+        String userId = userIdentityResolver.resolve(req, res);
+        changeDetectionService.recordDismissal(userId, symbol.trim().toUpperCase());
     }
 }
